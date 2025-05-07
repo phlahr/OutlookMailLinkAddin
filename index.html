@@ -1,0 +1,77 @@
+<!-- manifest.xml für Outlook Web Add-In -->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:type="MessageRead">
+  <Id>c5a04b2e-5fbc-42bb-86f9-11b2c0f5f3f0</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>DeineFirma</ProviderName>
+  <DefaultLocale>de-DE</DefaultLocale>
+  <DisplayName>Tel-Link-Scanner</DisplayName>
+  <Description>Erkennt Telefonnummern und Links in E-Mails</Description>
+  <IconUrl DefaultValue="https://example.com/icon-32.png" />
+  <SupportUrl DefaultValue="https://example.com/support" />
+  <Hosts>
+    <Host Name="Mailbox" />
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="Mailbox" />
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="MessageRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://localhost:3000/index.html" />
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadItem</Permissions>
+</OfficeApp>
+
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body>
+  <h2>Telefonnummern & Links</h2>
+  <div id="output">Lade...</div>
+  <script>
+    Office.onReady(() => {
+      Office.context.mailbox.item.body.getAsync("text", function(result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          const body = result.value;
+          const regex = /((\+|00)?[0-9\s\-()]{6,})|(https?:\/\/[^\s<]+)/g;
+          const matches = [...body.matchAll(regex)];
+
+          const outputDiv = document.getElementById("output");
+          outputDiv.innerHTML = "";
+
+          matches.forEach(match => {
+            const val = match[0].trim();
+            let link = val;
+            if (val.startsWith("http")) {
+              link = `<a href='${val}' target='_blank'>${val}</a>`;
+            } else {
+              const tel = val.replace(/[^+0-9]/g, "");
+              link = `<a href='tel:${tel}'>${val}</a>`;
+            }
+            const p = document.createElement("p");
+            p.innerHTML = link;
+            outputDiv.appendChild(p);
+          });
+
+          if (matches.length === 0) {
+            outputDiv.textContent = "Keine Telefonnummern oder Links gefunden.";
+          }
+        } else {
+          document.getElementById("output").textContent = "Fehler beim Laden der Mail.";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
